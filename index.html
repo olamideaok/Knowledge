@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Study Cards</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #9C6B42 0%, #7A4E2D 55%, #6B4526 100%);
+    font-family: 'Inter', sans-serif;
+  }
+
+  #app {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .wrap { width: 100%; max-width: 460px; display: flex; flex-direction: column; align-items: center; }
+
+  .pin { font-size: 20px; transform: rotate(-25deg); display: inline-block; margin-bottom: 4px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+
+  .title {
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 56px;
+    color: #FBF3E1;
+    margin: 0 0 4px 0;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #F1DDBB;
+    margin: 0 0 28px 0;
+    text-align: center;
+  }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: #F1DDBB;
+  }
+
+  .cat-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 4px;
+    border: 2px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    text-align: left;
+    background: rgba(251,243,225,0.55);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+    font: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .cat-row.active { background: #FBF3E1; }
+  .cat-row:active { transform: translateY(1px); }
+
+  .checkbox {
+    width: 20px; height: 20px; min-width: 20px;
+    border-radius: 3px;
+    border: 2px solid #8B5E3C;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .checkbox svg { display: none; }
+  .checkbox.checked svg { display: block; }
+
+  .cat-name {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: #3A2A1A;
+    flex: 1;
+  }
+  .cat-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #8B6A47;
+  }
+
+  .menu-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .footer-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #F1DDBB;
+  }
+  .start-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #FBF3E1;
+    background: #3A2A1A;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 40px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  .start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .start-btn:active:not(:disabled) { transform: translateY(1px); }
+
+  .reset-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #F1DDBB;
+    background: transparent;
+    border: 1px solid rgba(241,221,187,0.4);
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .reset-btn:active { transform: translateY(1px); }
+
+  .save-error {
+    font-size: 11px;
+    color: #F1B0A3;
+    text-align: center;
+    max-width: 320px;
+  }
+
+  .study-topbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .icon-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: #FBF3E1;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(251,243,225,0.4);
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  .icon-btn:active { transform: translateY(1px); }
+  .reviewed-label { font-family: 'Space Mono', monospace; font-size: 12px; color: #F1DDBB; }
+
+  .card-stage {
+    width: 100%;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .card {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    background: #FBF3E1;
+    border-radius: 4px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35), 0 2px 0 rgba(0,0,0,0.15);
+    padding: 28px 24px 24px;
+    transform: rotate(-0.6deg);
+    border-top: 6px solid #999;
+  }
+  .card-pin { position: absolute; top: -14px; left: 50%; margin-left: -10px; font-size: 18px; transform: rotate(-20deg); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+
+  .cat-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1.5px solid;
+    border-radius: 3px;
+    padding: 3px 8px;
+  }
+  .score-badge {
+    float: right;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #A88763;
+  }
+  .card-body { margin-top: 18px; min-height: 150px; }
+  .question-text {
+    font-family: 'Caveat', cursive;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.3;
+    color: #2E2013;
+    margin: 0;
+  }
+  .answer-block { margin-top: 18px; }
+  .answer-divider { width: 60px; height: 2px; background: #D4A017; margin-bottom: 12px; }
+  .answer-text { font-weight: 600; font-size: 17px; color: #3A2A1A; margin: 0; }
+
+  .stamp {
+    position: absolute;
+    bottom: 20px;
+    right: 22px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 2px;
+    border: 3px solid;
+    border-radius: 6px;
+    padding: 4px 10px;
+    transform: rotate(-8deg);
+    opacity: 0.85;
+  }
+
+  .reveal-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #3A2A1A;
+    background: #F1DDBB;
+    border: 2px solid #3A2A1A;
+    border-radius: 4px;
+    padding: 13px 36px;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .reveal-btn:active { transform: translateY(1px); }
+
+  .answer-buttons { display: flex; gap: 10px; width: 100%; }
+  .answer-btn {
+    flex: 1;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #FBF3E1;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 0;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+  .answer-btn:active { transform: translateY(1px); }
+
+  .pool-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #F1DDBB;
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stamp { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   QUESTION DATA
+   ------------------------------------------------------------
+   Everything lives in CATEGORY_DATA below. To edit content:
+     - Change a question's text:  edit the `q` field
+     - Change an answer:          edit the `a` field
+     - Add a question:            add a new { id, q, a, score: 0 } object
+     - Remove a question:         delete its object from the array
+     - Add/remove a category:     add/remove a block from this array
+   `id` values just need to be unique within their category.
+   `score` should start at 0 — the app updates it as you study.
+   Nothing else in the file needs to change when you edit this.
+   ============================================================ */
+
+const CATEGORY_DATA = [
+  {
+    id: "music",
+    name: "Music",
+    accent: "#B23A2E",
+    questions: [
+      { id: 1, q: "Who is known as the \"King of Afrobeat\" for pioneering the genre in the 1970s?", a: "Fela Kuti", score: 0 },
+      { id: 2, q: "Which Nigerian artist won the Grammy for Best Global Music Album in 2021, for \"Twice as Tall\"?", a: "Burna Boy", score: 0 },
+      { id: 3, q: "Which British rock band released the album \"Abbey Road\" in 1969?", a: "The Beatles", score: 0 },
+      { id: 4, q: "Who composed the four violin concertos known as \"The Four Seasons\"?", a: "Antonio Vivaldi", score: 0 },
+      { id: 5, q: "Which American singer is widely known as the \"Queen of Soul\"?", a: "Aretha Franklin", score: 0 },
+      { id: 6, q: "What instrument was Fela Kuti's signature instrument on stage?", a: "The saxophone", score: 0 },
+      { id: 7, q: "What West African genre blends highlife, jazz, and funk rhythms?", a: "Afrobeat", score: 0 },
+      { id: 8, q: "Michael Jackson's 1982 album is the best-selling album of all time. Name it.", a: "Thriller", score: 0 },
+      { id: 9, q: "Which Nigerian singer released the 2018 hit song \"Ye\"?", a: "Burna Boy", score: 0 },
+      { id: 10, q: "Highlife music emerged from which West African country in the early 20th century?", a: "Ghana", score: 0 },
+    ],
+  },
+  {
+    id: "movies",
+    name: "Movies",
+    accent: "#2C5F8A",
+    questions: [
+      { id: 1, q: "Which 1994 Tom Hanks film follows a man with a low IQ through decades of U.S. history?", a: "Forrest Gump", score: 0 },
+      { id: 2, q: "Who directed both \"Jaws\" (1975) and \"E.T. the Extra-Terrestrial\" (1982)?", a: "Steven Spielberg", score: 0 },
+      { id: 3, q: "What is Nigeria's film industry commonly nicknamed?", a: "Nollywood", score: 0 },
+      { id: 4, q: "What 1977 film launched the Star Wars franchise?", a: "Star Wars: A New Hope", score: 0 },
+      { id: 5, q: "Who played the Joker in \"The Dark Knight\" (2008)?", a: "Heath Ledger", score: 0 },
+      { id: 6, q: "Which 2018 Nigerian film was the country's first submission for the Academy Awards' International Feature category?", a: "Lionheart", score: 0 },
+      { id: 7, q: "What film won the very first Academy Award for Best Picture in 1929?", a: "Wings", score: 0 },
+      { id: 8, q: "Who directed \"Black Panther\" (2018)?", a: "Ryan Coogler", score: 0 },
+      { id: 9, q: "Which 2009 film became the highest-grossing film of all time (unadjusted for inflation)?", a: "Avatar", score: 0 },
+      { id: 10, q: "Which actress plays Wonder Woman in the DC film series?", a: "Gal Gadot", score: 0 },
+    ],
+  },
+  {
+    id: "history",
+    name: "History",
+    accent: "#6B4C9A",
+    questions: [
+      { id: 1, q: "In what year did Nigeria gain independence from Britain?", a: "1960", score: 0 },
+      { id: 2, q: "Who was Nigeria's first president after it became a republic in 1963?", a: "Nnamdi Azikiwe", score: 0 },
+      { id: 3, q: "What conflict was fought in Nigeria from 1967 to 1970?", a: "The Nigerian Civil War (the Biafran War)", score: 0 },
+      { id: 4, q: "In what year did World War II end?", a: "1945", score: 0 },
+      { id: 5, q: "Who was the first Emperor of Rome?", a: "Augustus", score: 0 },
+      { id: 6, q: "Which ancient wonder still standing today is located in Giza, Egypt?", a: "The Great Pyramid of Giza", score: 0 },
+      { id: 7, q: "The Sokoto Caliphate, a major center of Islamic scholarship and trade, was based in what is now which part of Nigeria?", a: "Northern Nigeria", score: 0 },
+      { id: 8, q: "In what year did the Berlin Wall fall?", a: "1989", score: 0 },
+      { id: 9, q: "Who was the British monarch for most of the 19th-century colonial expansion into Africa?", a: "Queen Victoria", score: 0 },
+      { id: 10, q: "In what year did apartheid officially end in South Africa?", a: "1994", score: 0 },
+    ],
+  },
+  {
+    id: "popculture",
+    name: "Pop Culture",
+    accent: "#2F6B4F",
+    questions: [
+      { id: 1, q: "What short-form video app has been central to popularizing Afrobeats songs worldwide?", a: "TikTok", score: 0 },
+      { id: 2, q: "What Nigerian slang word describes showing off or being flashy?", a: "Shakara", score: 0 },
+      { id: 3, q: "What annual Lagos event celebrates comics, anime, and geek culture?", a: "Lagos Comic Con", score: 0 },
+      { id: 4, q: "Which streaming platform produced the Nigerian series \"Blood Sisters\" (2022)?", a: "Netflix", score: 0 },
+      { id: 5, q: "What Nigerian slang term, meaning to flee or emigrate for better opportunities, went mainstream in recent years?", a: "Japa", score: 0 },
+      { id: 6, q: "What platform was formerly known as Twitter before its 2023 rebrand?", a: "X", score: 0 },
+      { id: 7, q: "What is the name of the viral leg-shuffling dance move popularized by Afrobeats artists?", a: "Zanku", score: 0 },
+      { id: 8, q: "What reality show, with a long-running Nigerian edition, houses contestants under 24/7 camera surveillance?", a: "Big Brother Naija", score: 0 },
+      { id: 9, q: "What single word describes a devoted, highly online fan of a celebrity or group?", a: "A \"stan\"", score: 0 },
+      { id: 10, q: "What term describes a post spreading rapidly across social media?", a: "Trending", score: 0 },
+    ],
+  },
+  {
+    id: "general",
+    name: "General Knowledge",
+    accent: "#B8860B",
+    questions: [
+      { id: 1, q: "What is the largest continent by area?", a: "Asia", score: 0 },
+      { id: 2, q: "What is the capital city of Nigeria?", a: "Abuja", score: 0 },
+      { id: 3, q: "What is the longest river in Africa?", a: "The Nile", score: 0 },
+      { id: 4, q: "What does the acronym \"ECOWAS\" stand for?", a: "Economic Community of West African States", score: 0 },
+      { id: 5, q: "What is the chemical symbol for gold?", a: "Au", score: 0 },
+      { id: 6, q: "How many time zones does mainland Nigeria observe?", a: "One (West Africa Time)", score: 0 },
+      { id: 7, q: "What is the tallest mountain in Africa?", a: "Mount Kilimanjaro", score: 0 },
+      { id: 8, q: "What is the official currency of Nigeria?", a: "The naira", score: 0 },
+      { id: 9, q: "What is the smallest prime number?", a: "2", score: 0 },
+      { id: 10, q: "Which planet is known as the \"Red Planet\"?", a: "Mars", score: 0 },
+    ],
+  },
+];
+
+/* ============================================================
+   PERSISTENCE
+   Scores and the active-category selection are saved under one
+   key, so progress survives reloads. Two backends are supported:
+
+   1. window.storage — used automatically when this file is open
+      inside the Claude artifact viewer. Synced to your Claude
+      account, personal to you (shared: false).
+   2. localStorage — used as a fallback anywhere else (opened as
+      a local file, hosted on your own site, etc). This only
+      persists on the one browser/device you're using, and only
+      for this exact file location.
+
+   Nothing else in the app needs to know which one is active.
+   ============================================================ */
+const STORAGE_KEY = "flashcard-state";
+
+function hasClaudeStorage() {
+  return typeof window.storage !== "undefined" && window.storage !== null;
+}
+
+function hasLocalStorage() {
+  try {
+    const testKey = "__flashcard_ls_test__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch (err) {
+    return false; // localStorage disabled/unavailable (e.g. private mode, sandboxed iframe)
+  }
+}
+
+async function loadState() {
+  if (hasClaudeStorage()) {
+    try {
+      const result = await window.storage.get(STORAGE_KEY, false);
+      return result ? JSON.parse(result.value) : null;
+    } catch (err) {
+      return null; // key doesn't exist yet, or storage unavailable
+    }
+  }
+  if (hasLocalStorage()) {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+  return null;
+}
+
+async function saveState(scores, activeIds) {
+  const payload = JSON.stringify({ scores, activeIds });
+  if (hasClaudeStorage()) {
+    try {
+      const result = await window.storage.set(STORAGE_KEY, payload, false);
+      return !!result;
+    } catch (err) {
+      console.error("Could not save progress:", err);
+      return false;
+    }
+  }
+  if (hasLocalStorage()) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, payload);
+      return true;
+    } catch (err) {
+      console.error("Could not save progress:", err);
+      return false;
+    }
+  }
+  return false;
+}
+
+/* ============================================================
+   SCORING LOGIC
+   Hard    -> score +2  (wrong / struggled -> shows up MORE)
+   Correct -> score -1  (got it -> shows up slightly LESS)
+   Easy    -> score -2  (too easy -> shows up LESS)
+   Selection weight = max(score, 0) + 1, so every question can
+   still appear, but higher-scoring ones appear more often.
+   ============================================================ */
+
+function pickWeighted(pool, avoidKey) {
+  const candidates = pool.length > 1 ? pool.filter((c) => c.key !== avoidKey) : pool;
+  const weights = candidates.map((c) => Math.max(c.q.score, 0) + 1);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
+}
+
+/* ============================================================
+   APP STATE
+   ============================================================ */
+let state = {
+  categories: CATEGORY_DATA.map((c) => ({ ...c, questions: c.questions.map((q) => ({ ...q })) })),
+  active: new Set(CATEGORY_DATA.map((c) => c.id)),
+  screen: "loading", // loading | menu | study
+  currentKey: null,
+  revealed: false,
+  stamp: null,
+  reviewedCount: 0,
+  saveError: false,
+  hasLoaded: false,
+};
+
+function buildPool() {
+  const list = [];
+  state.categories.forEach((cat) => {
+    if (!state.active.has(cat.id)) return;
+    cat.questions.forEach((q) => {
+      list.push({ key: `${cat.id}:${q.id}`, catId: cat.id, catName: cat.name, accent: cat.accent, q });
+    });
+  });
+  return list;
+}
+
+function getActiveCount() {
+  return state.categories
+    .filter((c) => state.active.has(c.id))
+    .reduce((sum, c) => sum + c.questions.length, 0);
+}
+
+function persist() {
+  if (!state.hasLoaded) return;
+  const scores = {};
+  state.categories.forEach((cat) =>
+    cat.questions.forEach((q) => {
+      scores[`${cat.id}:${q.id}`] = q.score;
+    })
+  );
+  saveState(scores, Array.from(state.active)).then((ok) => {
+    state.saveError = !ok;
+    if (state.screen === "menu") render();
+  });
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+async function init() {
+  const saved = await loadState();
+  if (saved) {
+    if (saved.scores) {
+      state.categories.forEach((cat) => {
+        cat.questions.forEach((q) => {
+          const key = `${cat.id}:${q.id}`;
+          const savedScore = saved.scores[key];
+          if (typeof savedScore === "number") q.score = savedScore;
+        });
+      });
+    }
+    if (Array.isArray(saved.activeIds) && saved.activeIds.length > 0) {
+      state.active = new Set(saved.activeIds);
+    }
+  }
+  state.hasLoaded = true;
+  state.screen = "menu";
+  render();
+}
+
+function toggleCategory(id) {
+  if (state.active.has(id)) state.active.delete(id);
+  else state.active.add(id);
+  render();
+  persist();
+}
+
+function startStudying() {
+  const pool = buildPool();
+  if (pool.length === 0) return;
+  const next = pickWeighted(pool, null);
+  state.currentKey = next.key;
+  state.revealed = false;
+  state.stamp = null;
+  state.reviewedCount = 0;
+  state.screen = "study";
+  render();
+}
+
+function revealAnswer() {
+  state.revealed = true;
+  render();
+}
+
+function goHome() {
+  state.screen = "menu";
+  render();
+}
+
+function applyAnswer(action) {
+  const pool = buildPool();
+  const current = pool.find((c) => c.key === state.currentKey);
+  if (!current) return;
+  const delta = action === "hard" ? 2 : action === "correct" ? -1 : -2;
+
+  const cat = state.categories.find((c) => c.id === current.catId);
+  const q = cat.questions.find((qq) => qq.id === current.q.id);
+  q.score += delta;
+
+  state.stamp = action;
+  render();
+  persist();
+
+  setTimeout(() => {
+    state.reviewedCount += 1;
+    const freshPool = buildPool();
+    const next = pickWeighted(freshPool, current.key);
+    state.currentKey = next.key;
+    state.revealed = false;
+    state.stamp = null;
+    render();
+  }, 650);
+}
+
+async function resetProgress() {
+  state.categories = CATEGORY_DATA.map((c) => ({ ...c, questions: c.questions.map((q) => ({ ...q, score: 0 })) }));
+  state.active = new Set(CATEGORY_DATA.map((c) => c.id));
+  render();
+  await saveState({}, Array.from(state.active));
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const app = document.getElementById("app");
+
+function checkSvg() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FBF3E1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+}
+
+function renderLoading() {
+  app.innerHTML = `
+    <div class="wrap" style="align-items:center;">
+      <span class="pin">📌</span>
+      <p class="loading-text">Loading your progress…</p>
+    </div>
+  `;
+}
+
+function renderMenu() {
+  const activeCount = getActiveCount();
+  const rows = state.categories.map((cat) => {
+    const isActive = state.active.has(cat.id);
+    return `
+      <button class="cat-row ${isActive ? "active" : ""}" style="border-color:${isActive ? cat.accent : "rgba(0,0,0,0.15)"}" data-toggle="${cat.id}">
+        <span class="checkbox ${isActive ? "checked" : ""}" style="background:${isActive ? cat.accent : "transparent"};border-color:${isActive ? cat.accent : "#8B5E3C"}">
+          ${checkSvg()}
+        </span>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-count">${cat.questions.length} cards</span>
+      </button>
+    `;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="wrap">
+      <span class="pin">📌</span>
+      <h1 class="title">Study Cards</h1>
+      <p class="subtitle">Pin the categories you want on the board, then get to work.</p>
+      <div class="cat-list">${rows}</div>
+      <div class="menu-footer">
+        <span class="footer-count">${activeCount} card${activeCount === 1 ? "" : "s"} in the deck</span>
+        <button class="start-btn" id="startBtn" ${activeCount === 0 ? "disabled" : ""}>Start Studying</button>
+        <button class="reset-btn" id="resetBtn">Reset all scores</button>
+        ${state.saveError ? `<span class="save-error">Progress isn't saving right now — it'll still work this session.</span>` : ""}
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll("[data-toggle]").forEach((el) => {
+    el.addEventListener("click", () => toggleCategory(el.getAttribute("data-toggle")));
+  });
+  document.getElementById("startBtn").addEventListener("click", startStudying);
+  document.getElementById("resetBtn").addEventListener("click", resetProgress);
+}
+
+function renderStudy() {
+  const pool = buildPool();
+  const current = pool.find((c) => c.key === state.currentKey);
+  if (!current) { state.screen = "menu"; render(); return; }
+
+  const { q, catName, accent } = current;
+
+  const stampColor = state.stamp === "hard" ? "#B23A2E" : state.stamp === "correct" ? "#2C5F8A" : "#2F6B4F";
+
+  app.innerHTML = `
+    <div class="wrap">
+      <div class="study-topbar">
+        <button class="icon-btn" id="homeBtn">🏠 Board</button>
+        <span class="reviewed-label">Reviewed: ${state.reviewedCount}</span>
+      </div>
+
+      <div class="card-stage">
+        <div class="card" style="border-top-color:${accent}">
+          <span class="card-pin">📌</span>
+          <span class="cat-tag" style="color:${accent};border-color:${accent}">${catName}</span>
+          <span class="score-badge">score ${q.score}</span>
+          <div class="card-body">
+            <p class="question-text">${q.q}</p>
+            ${state.revealed ? `
+              <div class="answer-block">
+                <div class="answer-divider"></div>
+                <p class="answer-text">${q.a}</p>
+              </div>
+            ` : ""}
+          </div>
+          ${state.stamp ? `<div class="stamp" style="color:${stampColor};border-color:${stampColor}">${state.stamp.toUpperCase()}</div>` : ""}
+        </div>
+      </div>
+
+      ${!state.revealed ? `
+        <button class="reveal-btn" id="revealBtn">Reveal Answer</button>
+      ` : `
+        <div class="answer-buttons">
+          <button class="answer-btn" style="background:#B23A2E" data-answer="hard">Hard</button>
+          <button class="answer-btn" style="background:#2C5F8A" data-answer="correct">Correct</button>
+          <button class="answer-btn" style="background:#2F6B4F" data-answer="easy">Easy</button>
+        </div>
+      `}
+
+      <p class="pool-note">↻ Drawing from ${pool.length} active card${pool.length === 1 ? "" : "s"} — tougher cards come back more often.</p>
+    </div>
+  `;
+
+  document.getElementById("homeBtn").addEventListener("click", goHome);
+  const revealBtn = document.getElementById("revealBtn");
+  if (revealBtn) revealBtn.addEventListener("click", revealAnswer);
+  document.querySelectorAll("[data-answer]").forEach((el) => {
+    el.addEventListener("click", () => applyAnswer(el.getAttribute("data-answer")));
+  });
+}
+
+function render() {
+  if (state.screen === "loading") renderLoading();
+  else if (state.screen === "menu") renderMenu();
+  else if (state.screen === "study") renderStudy();
+}
+
+init();
+</script>
+</body>
+</html>
